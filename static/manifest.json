@@ -1,0 +1,20 @@
+{
+    "manifest_version": 2,
+    "name": "MUC indoor localisation visualization page",
+    "short_name": "BLE indoor localization",
+    "description": "BLE indoor localization visualisation for MUC class",
+    "version": "1.0.0",
+    "author": "Yuhui Zhao",
+    "minimum_chrome_version": "37",
+    "bluetooth": {},
+    "app": {
+      "background": {
+        "scripts": ["background.js"]
+      }
+    },
+    "icons": {
+        "128": "gt_ubicomp_128.jpg",
+        "48": "gt_ubicomp_48.jpg",
+        "16": "gt_ubicomp_16.jpg"
+    }
+}
