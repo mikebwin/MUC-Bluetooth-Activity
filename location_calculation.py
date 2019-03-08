@@ -162,7 +162,7 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
     for i in range(len(crowd_sourced_data)):
         RSSIs = [float(crowd_sourced_data[i][k]) for k in range(1,9)]
         crowd_sourced_data[i] = [RSSIs, float(crowd_sourced_data[i][9]), float(crowd_sourced_data[i][10]), float(crowd_sourced_data[i][11])]
-    print(numpy.asarray(crowd_sourced_data))
+    #print(numpy.asarray(crowd_sourced_data))
     return numpy.asarray(crowd_sourced_data)
 
 def build_knn_model(processed_data):
