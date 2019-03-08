@@ -264,7 +264,13 @@ def perform_trilateration_with_live_data(distances):
     # sum of squared error as the score you want to minimize
 
     def objective_function(xyz_guess, xyzd):
-        raise NotImplementedError
+        sum = 0
+        for i in range(len(d_i)):
+            sum_of_squares = pow(xyz_guess[0]-xyzd[0][i], 2) + pow(xyz_guess[1]-xyzd[1][i], 2) + pow(xyz_guess[2]-xyzd[2][i], 2)
+            sum += pow(pow(sum_of-squares, .5) - xyzd[3][i], 2)
+        #Multiply by w_i, whatever that is
+        return sum
+        
 
     try:
         x, y, z = minimize(objective_function, initial_guess, [x_i, y_i, z_i, d_i]).x
