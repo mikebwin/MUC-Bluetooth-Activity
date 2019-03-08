@@ -60,10 +60,6 @@ def receive_and_process_live_data(rssi_data):
         handle it?
     '''
 
-    crowd_sourced_data = None
-    knn_model_x = None
-    knn_model_y = None
-    knn_model_z = None
     print('\nreceive rssi data {0}'.format(rssi_data))
     ''' The code below maintains rssi_data_buffer, a list that contains
         a list of most recent rssi reading.
@@ -78,6 +74,9 @@ def receive_and_process_live_data(rssi_data):
         rssi_data_buffer.pop(0)
 
     #TODO: Obtain a single value for each beacon from the rssi_data_buffer
+    rssi_list = dict()
+    for index, item in enumerate(rss_data_buffer):
+
     processed_rssi = None
 
     knn_location_x = -1
@@ -200,7 +199,7 @@ def build_knn_model(processed_data):
     knn_z.fit(rssi_data, z_data)
 
     # return knn_x, knn_y, knn_z
-    raise (knn_x, knn_y, knn_z)
+    return (knn_x, knn_y, knn_z)
 
 def perform_knn_with_live_data(proccessed_live_rssi_data):
     ''' perform regression using the knn model you built:
@@ -216,8 +215,13 @@ def perform_knn_with_live_data(proccessed_live_rssi_data):
     # knn_model_x
     # knn_model_y
     # knn_model_z
-    # return x, y, z
-    raise NotImplementedError
+
+    x = knn_x_model.predict(processed_live_rss_data)
+    y = knn_y_model.predict(processed_live_rss_data)
+    z = knn_z_model.predict(processed_line_rss_data)
+
+    return x, y, z
+  
 
 
 def rssi_to_dist(proccessed_live_rssi_data):
