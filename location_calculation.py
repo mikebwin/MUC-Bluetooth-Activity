@@ -4,6 +4,9 @@ from sklearn.neighbors import KNeighborsRegressor
 from scipy.optimize import minimize
 import math
 import traceback
+import numpy
+from numpy import genfromtxt
+import csv
 
 rssi_data_buffer = []
 data_buffer_size = 5
@@ -21,9 +24,9 @@ def initialize_knn_model(path_to_crowd_sourced_data):
         print('Please provide path_to_crowd_sourced_data in indoor_localization_server.py')
         return
     try:
-        crowd_sourced_data = genfromtxt(path_to_crowd_sourced_data, delimiter=',')
+        #crowd_sourced_data = genfromtxt(path_to_crowd_sourced_data, delimiter=',')
         try:
-            processed_data = preprocess_data_for_knn(crowd_sourced_data)
+            processed_data = preprocess_data_for_knn(path_to_crowd_sourced_data)
             knn_model_x, knn_model_y, knn_model_z = build_knn_model(processed_data)
         except Exception as e:
             print('[initialize_knn_model] An error occured when preparing knn model')
@@ -122,7 +125,7 @@ def receive_and_process_live_data(rssi_data):
     return [knn_location_x, knn_location_y, knn_location_z], dists, [trilateration_location_x, trilateration_location_y, trilateration_location_z]
 
 
-def preprocess_data_for_knn(crowd_sourced_data):
+def preprocess_data_for_knn(path_to_crowd_sourced_data):
     '''Preprocess the crowd_sourced data
     How do you handle missing/invalid data(rssi = 0)? What is the
     casue of missing/invalid data?
@@ -131,7 +134,36 @@ def preprocess_data_for_knn(crowd_sourced_data):
     Arguments:
         crowd_sourced_data {[type]} -- [description]
     '''
-    raise NotImplementedError
+    #path_to_crowd_sourced_data = "Data/crowd_sourced_data.csv"
+    with open(path_to_crowd_sourced_data, 'rb') as f:
+        reader = csv.reader(f, skipinitialspace=True)
+        crowd_sourced_data = list(reader)
+    averages = {}
+    #Find averages
+    for entry in crowd_sourced_data:
+        if entry[0] not in averages:
+            averages[entry[0]] = [0, 0, 0, 0, 0, 0, 0, 0]
+        for i in  range(0, 8):
+            averages[entry[0]][i] = averages[entry[0]][i] + float(entry[i+1])
+    for entry in averages:
+        for i in range(0,8):
+            averages[entry][i] = averages[entry][i]/10 #10 entries per submission
+    #Replace RSSI = 0 with average 
+    for i in range(len(crowd_sourced_data)):
+        for j in range(len(crowd_sourced_data[0])):
+            if crowd_sourced_data[i][j] == '0':
+                if(averages[crowd_sourced_data[i][0]][j-1] != 0):
+                    crowd_sourced_data[i][j] = averages[crowd_sourced_data[i][0]][j-1]
+                else:
+                    #Find average for all distances for submission ID
+                    for k in range(0,8):
+                        averageAllBeacons = averages[crowd_sourced_data[i][0]][k]
+                    crowd_sourced_data[i][j] = averages[crowd_sourced_data[i][0]][k]/10
+    for i in range(len(crowd_sourced_data)):
+        RSSIs = [float(crowd_sourced_data[i][k]) for k in range(1,9)]
+        crowd_sourced_data[i] = [RSSIs, float(crowd_sourced_data[i][9]), float(crowd_sourced_data[i][10]), float(crowd_sourced_data[i][11])]
+    print(numpy.asarray(crowd_sourced_data))
+    return numpy.asarray(crowd_sourced_data)
 
 def build_knn_model(processed_data):
     '''build knn regression model for location
@@ -244,3 +276,6 @@ def perform_trilateration_with_live_data(distances):
         print(traceback.print_exc())
     # return x, y, z
     raise NotImplementedError
+
+if __name__ == "__main__":
+    #Do stuff
