@@ -249,7 +249,7 @@ def rssi_to_dist(proccessed_live_rssi_data):
     dist_to_beacons = [None]
 
 
-    for rssi in piroccessed_live_rssi_data:   #loop through if the processed data is 2d, i need to change if only 1d'
+    for rssi in proccessed_live_rssi_data:   #loop through if the processed data is 2d, i need to change if only 1d'
         ratio = (rssi*1.0)/txPower
         if (rssi == 0): 
             dist_to_beacons.append(0);
