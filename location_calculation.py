@@ -74,8 +74,12 @@ def receive_and_process_live_data(rssi_data):
         rssi_data_buffer.pop(0)
 
     #TODO: Obtain a single value for each beacon from the rssi_data_buffer
-    rssi_list = dict()
+    rssi_dict = dict()
     for index, item in enumerate(rss_data_buffer):
+        if rssi_dict.get(index) is None:
+            rssi_dict.push(index, item)
+        else:
+
 
     processed_rssi = None
 
@@ -245,20 +249,18 @@ def rssi_to_dist(proccessed_live_rssi_data):
     dist_to_beacons = [None]
 
 
-for row in proccessed_live_rssi_data   #loop through if the processed data is 2d, i need to change if only 1d'
-    for rssi in row
-        ratio = (rssi*1.0)/txPower
-        if (rssi == 0) {
-            dist_to_beacons.append(0);
-        } else if ((ratio) < 1.0) {
-            dist_to_beacons.append(ratio**10)
-        } else {
-            distance =  (0.89976)*(ratio**7.7095) + 0.111;    
-            dist_to_beacons.append(distance)
-        }
+    for row in piroccessed_live_rssi_data:   #loop through if the processed data is 2d, i need to change if only 1d'
+        for rssi in row:
+            ratio = (rssi*1.0)/txPower
+            if (rssi == 0): 
+                dist_to_beacons.append(0);
+            elif ((ratio) < 1.0): 
+                dist_to_beacons.append(ratio**10)
+            else:
+                distance =  (0.89976)*(ratio**7.7095) + 0.111    
+                dist_to_beacons.append(distance)
 
-
-return dist_to_beacons
+    return dist_to_beacons
 
 
 def perform_trilateration_with_live_data(distances):
