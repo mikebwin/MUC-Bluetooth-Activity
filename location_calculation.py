@@ -242,8 +242,23 @@ def rssi_to_dist(proccessed_live_rssi_data):
     # TODO: implement the algorithm from the link above
     txPower = -54 # According to the spec of the beacon
 
-    # return dist_to_beacons
-    raise NotImplementedError
+    dist_to_beacons = [None]
+
+
+for row in proccessed_live_rssi_data   #loop through if the processed data is 2d, i need to change if only 1d'
+    for rssi in row
+        ratio = (rssi*1.0)/txPower
+        if (rssi == 0) {
+            dist_to_beacons.append(0);
+        } else if ((ratio) < 1.0) {
+            dist_to_beacons.append(ratio**10)
+        } else {
+            distance =  (0.89976)*(ratio**7.7095) + 0.111;    
+            dist_to_beacons.append(distance)
+        }
+
+
+return dist_to_beacons
 
 
 def perform_trilateration_with_live_data(distances):
@@ -269,7 +284,7 @@ def perform_trilateration_with_live_data(distances):
 
     def objective_function(xyz_guess, xyzd):
         sum = 0
-        for i in range(len(d_i)):
+        for i in range(len(xyzd[0])):
             sum_of_squares = pow(xyz_guess[0]-xyzd[0][i], 2) + pow(xyz_guess[1]-xyzd[1][i], 2) + pow(xyz_guess[2]-xyzd[2][i], 2)
             sum += pow(pow(sum_of-squares, .5) - xyzd[3][i], 2)
         #Multiply by w_i, whatever that is
