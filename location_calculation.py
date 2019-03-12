@@ -135,7 +135,7 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
         crowd_sourced_data {[type]} -- [description]
     '''
 	# path_to_crowd_sourced_data = "Data/crowd_sourced_data.csv"
-	with open(path_to_crowd_sourced_data, 'rb') as f:
+	with open(path_to_crowd_sourced_data, 'rt') as f:
 		reader = csv.reader(f, skipinitialspace=True)
 		crowd_sourced_data = list(reader)
 	averages = {}
@@ -168,41 +168,32 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
 
 
 def build_knn_model(processed_data, neighbors):
-	'''build knn regression model for location
-    TODO:
-        1. Learn about knn, read the scikit-learn documantation and
-        lean to use it. Play with KNeighborsRegressor's input
-        parameters
-        2. Figure out how to build the model. What data to input
-    hint:
-        The parameters for knn_x, knn_y, and knn_z needs to be the
-        same for the localization calculation to make sense.
-    more information:
-    http://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsRegressor.html#sklearn.neighbors.KNeighborsRegressor
-    Arguments:
-        processed_data -- your preprocessed crowdsourcing data
-    Returns:
-        KNN regressor model for X coordinate, Y coordinate and
-        Z coordinate
-    '''
-
 	# TODO: Refer to the scikit-learn documentation to see how to use KNeighborsRegressor
-	knn_x = KNeighborsRegressor(n_neighbors=neighbors)
-	knn_y = KNeighborsRegressor(n_neighbors=neighbors)
-	knn_z = KNeighborsRegressor(n_neighbors=neighbors)
+    knn_x = KNeighborsRegressor(n_neighbors=neighbors)
+    knn_y = KNeighborsRegressor(n_neighbors=neighbors)
+    knn_z = KNeighborsRegressor(n_neighbors=neighbors)
 
-	# TODO: How do you extract the information you need from processed data
-	rssi_data = processed_data[0]
-	x_data = processed_data[1]
-	y_data = processed_data[2]
-	z_data = processed_data[3]
+    # TODO: How do you extract the information you need from processed data
+    
+    #Note: processed_data is a 2D array 
+    rssi_data = []
+    x_data = []
+    y_data = []
+    z_data = []
+    for data in processed_data:
+        rssi_data.append(data[0])
+        x_data.append(data[1])
+        y_data.append(data[2])
+        z_data.append(data[3])
+        
+    #print(x_data)    
 
-	knn_x.fit(rssi_data, x_data)
-	knn_y.fit(rssi_data, y_data)
-	knn_z.fit(rssi_data, z_data)
+    knn_x.fit(rssi_data, x_data)
+    knn_y.fit(rssi_data, y_data)
+    knn_z.fit(rssi_data, z_data)
 
-	# return knn_x, knn_y, knn_z
-	return (knn_x, knn_y, knn_z)
+    # return knn_x, knn_y, knn_z
+    return (knn_x, knn_y, knn_z)
 
 
 def perform_knn_with_live_data(proccessed_live_rssi_data):
@@ -283,7 +274,7 @@ def perform_trilateration_with_live_data(distances):
 			sum_of_squares = pow(xyz_guess[0] - xyzd[0][i], 2) + pow(xyz_guess[1] - xyzd[1][i], 2) + pow(
 				xyz_guess[2] - xyzd[2][i], 2)
 			sum += pow(pow(sum_of_squares, .5) - xyzd[3][i], 2)
-		# Multiply by w_i, whatever that is
+		# Multiply by w_i, whatever that is - lower weight for rssi of -90 bc can't trust it 
 		return sum
 
 	(x,y,z) = (None, None, None)
@@ -296,4 +287,7 @@ def perform_trilateration_with_live_data(distances):
 		print(e.__doc__)
 		print(traceback.print_exc())
 	return (x, y, z)
+
+if __name__ == '__main__':
+    initialize_knn_model('Data/crowd_sourced_data.csv', 5)
 
