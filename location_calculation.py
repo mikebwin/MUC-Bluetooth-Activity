@@ -1,5 +1,6 @@
 from numpy import genfromtxt
 import numpy as np
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from scipy.optimize import minimize
 import math
@@ -13,6 +14,8 @@ data_buffer_size = 5
 global knn_model_x
 global knn_model_y
 global knn_model_z
+
+global testing_data
 
 
 def initialize_knn_model(path_to_crowd_sourced_data, num):
@@ -29,7 +32,15 @@ def initialize_knn_model(path_to_crowd_sourced_data, num):
 		#                                 dtype="S23, f, f, f, f, f, f, f, f, f, f, f", autostrip=True)
 		try:
 			processed_data = preprocess_data_for_knn(path_to_crowd_sourced_data)
-			knn_model_x, knn_model_y, knn_model_z = build_knn_model(processed_data, num)
+			# for item in processed_data:
+			# 	print item
+			training_rssi = processed_data[:-50, :8]
+			training_x = processed_data[:-50, 8:9]
+			training_y = processed_data[:-50, 9:10]
+			training_z = processed_data[:-50, 10:11]
+			training_data = (training_rssi, training_x, training_y, training_z)
+			knn_model_x, knn_model_y, knn_model_z = build_knn_model(training_data, num)
+
 		except Exception as e:
 			print('[initialize_knn_model] An error occured when preparing knn model')
 			print(e.__doc__)
@@ -159,12 +170,15 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
 					for k in range(0, 8):
 						averageAllBeacons = averages[crowd_sourced_data[i][0]][k]
 					crowd_sourced_data[i][j] = averages[crowd_sourced_data[i][0]][k] / 10
-	for i in range(len(crowd_sourced_data)):
-		RSSIs = [float(crowd_sourced_data[i][k]) for k in range(1, 9)]
-		crowd_sourced_data[i] = [RSSIs, float(crowd_sourced_data[i][9]), float(crowd_sourced_data[i][10]),
-		                         float(crowd_sourced_data[i][11])]
-	# print(numpy.asarray(crowd_sourced_data))
-	return numpy.asarray(crowd_sourced_data)
+	# for i in range(len(crowd_sourced_data)):
+	# 	RSSIs = [float(crowd_sourced_data[i][k]) for k in range(1, 9)]
+	# 	crowd_sourced_data[i] = [RSSIs, float(crowd_sourced_data[i][9]), float(crowd_sourced_data[i][10]),
+	# 	                         float(crowd_sourced_data[i][11])]
+	array = list()
+	for item in crowd_sourced_data:
+		add = item[1:]
+		array.append(add)
+	return np.array(array)
 
 
 def build_knn_model(processed_data, neighbors):
@@ -196,6 +210,8 @@ def build_knn_model(processed_data, neighbors):
 	x_data = processed_data[1]
 	y_data = processed_data[2]
 	z_data = processed_data[3]
+
+	print rssi_data, x_data, y_data
 
 	knn_x.fit(rssi_data, x_data)
 	knn_y.fit(rssi_data, y_data)
@@ -297,3 +313,67 @@ def perform_trilateration_with_live_data(distances):
 		print(traceback.print_exc())
 	return (x, y, z)
 
+if __name__ == "__main__":
+
+	testing_data = np.array([[-67.0, -59.0, -59.0, -64.0, -68.0, -73.0, -61.0, -56.0, 8.085648398, 7.188579943],
+	 [0.0, -60.0, -70.0, -67.0, -72.0, -64.0, -55.0, 8.085648398, 7.188579943],
+	 [0.0, -60.0, -71.0, -62.0, -73.0, -62.0, -57.0, 8.085648398, 7.188579943],
+	 [-61.0, -60.0, -74.0, -63.0, -74.0, -67.0, -57.0, 8.085648398, 7.188579943],
+	 [-62.0, -61.0, -75.0, -64.0, -77.0, -65.0, -56.0, 8.085648398, 7.188579943],
+	 [-65.0, -61.0, -72.0, -65.0, -81.0, -64.0, -57.0, 8.085648398, 7.188579943],
+	 [-62.0, 0.0, -70.0, -64.0, -74.0, -67.0, -54.0, 8.085648398, 7.188579943],
+	 [-64.0, -60.0, 0.0, 0.0, -73.0, -62.0, -55.0, 8.085648398, 7.188579943],
+	 [-64.0, 0.0, -70.0, -64.0, 0.0, -62.0, -56.0, 8.085648398, 7.188579943],
+	 [-64.0, -62.0, -74.0, -66.0, 0.0, -65.0, -57.0, 8.085648398, 7.188579943],
+	 [-78.0, -84.0, -90.0, -76.0, -77.0, 0.0, -68.0, 6.800512228, 6.010538454],
+	 [-78.0, -85.0, -90.0, -76.0, -79.0, 0.0, -68.0, 6.800512228, 6.010538454],
+	 [-78.0, -85.0, 0.0, -74.0, -80.0, 0.0, -71.0, 6.800512228, 6.010538454],
+	 [-77.0, -85.0, -84.0, -73.0, -82.0, 0.0, -69.0, 6.800512228, 6.010538454],
+	 [-78.0, -87.0, -85.0, -77.0, -80.0, 0.0, -68.0, 6.800512228, 6.010538454],
+	 [-79.0, -86.0, -87.0, -76.0, -78.0, 0.0, -69.0, 6.800512228, 6.010538454],
+	 [-80.0, -84.0, -86.0, -75.0, -78.0, 0.0, -70.0, 6.800512228, 6.010538454],
+	 [-80.0, 0.0, -85.0, -75.0, -77.0, 0.0, -68.0, 6.800512228, 6.010538454],
+	 [-79.0, -86.0, -85.0, -73.0, -77.0, 0.0, -70.0, 6.800512228, 6.010538454],
+	 [-80.0, -86.0, -85.0, -75.0, -77.0, 0.0, -68.0, 6.800512228, 6.010538454],
+	 [-81.0, 0.0, -83.0, -67.0, -68.0, -77.0, 0.0, 0.428378723, 16.16668401],
+	 [-81.0, 0.0, 0.0, -68.0, -68.0, -76.0, -80.0, 0.428378723, 16.16668401],
+	 [-80.0, -85.0, -84.0, -68.0, -70.0, -77.0, -79.0, 0.428378723, 16.16668401],
+	 [-83.0, -85.0, -84.0, -67.0, -69.0, -81.0, -79.0, 0.428378723, 16.16668401],
+	 [-83.0, -86.0, -84.0, 0.0, -71.0, -81.0, -79.0, 0.428378723, 16.16668401],
+	 [-91.0, 0.0, -59.0, -67.0, 0.0, -76.0, -78.0, 0.428378723, 16.16668401],
+	 [-89.0, 0.0, -62.0, 0.0, -65.0, -77.0, -79.0, 0.428378723, 16.16668401],
+	 [-89.0, 0.0, 0.0, -68.0, -67.0, -77.0, 0.0, 0.428378723, 16.16668401],
+	 [-88.0, -88.0, -70.0, -68.0, -70.0, -78.0, -81.0, 0.428378723, 16.16668401],
+	 [-87.0, -87.0, -73.0, -70.0, -69.0, -77.0, -80.0, 0.428378723, 16.16668401],
+	 [-75.0, -70.0, -66.0, -76.0, 0.0, -70.0, -66.0, 6.157944144, 0.370218601],
+	 [0.0, -66.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.157944144, 0.370218601],
+	 [-70.0, -73.0, -68.0, 0.0, 0.0, -73.0, -72.0, 6.157944144, 0.370218601],
+	 [-69.0, -71.0, -68.0, -79.0, -76.0, -72.0, -71.0, 6.157944144, 0.370218601],
+	 [-70.0, -71.0, -68.0, 0.0, -76.0, -72.0, -72.0, 6.157944144, 0.370218601],
+	 [-69.0, -71.0, -67.0, 0.0, -77.0, -71.0, 0.0, 6.157944144, 0.370218601],
+	 [-68.0, -71.0, -66.0, -79.0, -77.0, -69.0, -70.0, 6.157944144, 0.370218601],
+	 [-69.0, -64.0, -67.0, -76.0, -75.0, -67.0, -71.0, 6.157944144, 0.370218601],
+	 [-79.0, -66.0, -68.0, -76.0, 0.0, -70.0, -71.0, 6.157944144, 0.370218601],
+	 [0.0, -65.0, -66.0, 0.0, -76.0, -70.0, -70.0, 6.157944144, 0.370218601],
+	 [-69.0, -64.0, -76.0, -80.0, 0.0, -80.0, -68.0, 12.03030247, 3.493813456],
+	 [-67.0, -64.0, -76.0, -77.0, -90.0, -81.0, -67.0, 12.03030247, 3.493813456],
+	 [0.0, -64.0, -72.0, -76.0, -86.0, -77.0, -73.0, 12.03030247, 3.493813456],
+	 [-65.0, -64.0, -76.0, -76.0, -86.0, -80.0, -73.0, 12.03030247, 3.493813456],
+	 [-65.0, -64.0, -77.0, -77.0, -86.0, -80.0, 0.0, 12.03030247, 3.493813456],
+	 [-65.0, -65.0, 0.0, 0.0, -86.0, -78.0, -71.0, 12.03030247, 3.493813456],
+	 [-65.0, -65.0, -77.0, -78.0, -87.0, -81.0, -71.0, 12.03030247, 3.493813456],
+	 [-65.0, -66.0, -76.0, -76.0, -85.0, -81.0, -69.0, 12.03030247, 3.493813456],
+	 [-66.0, -65.0, 0.0, -79.0, 0.0, -81.0, -68.0, 12.03030247, 3.493813456],
+	 [0.0, -66.0, -76.0, -78.0, 0.0, -80.0, -68.0, 12.03030247, 3.493813456]])
+
+	testing_rssi = testing_data[:, :8]
+	testing_x = testing_data[:, 8:9]
+	testing_y = testing_data[:, 9:10]
+	testing_z = testing_data[:, 10:11]
+	print testing_rssi
+
+	initialize_knn_model("Data/crowd_sourced_data.csv", 5)
+
+	for data in testing_data:
+		print data
+		print receive_and_process_live_data(data)
