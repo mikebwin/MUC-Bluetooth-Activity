@@ -7,12 +7,14 @@ import traceback
 import numpy
 from numpy import genfromtxt
 import csv
+import random
 
 rssi_data_buffer = []
 data_buffer_size = 5
-global knn_model_x
-global knn_model_y
-global knn_model_z
+global knn_model_x 
+global knn_model_y 
+global knn_model_z 
+global live_data
 
 
 def initialize_knn_model(path_to_crowd_sourced_data, num):
@@ -21,6 +23,10 @@ def initialize_knn_model(path_to_crowd_sourced_data, num):
     Arguments:
         path_to_crowd_sourced_data {String} -- Path to crowd source data
     '''
+	global live_data
+	global knn_model_x
+	global knn_model_y
+	global knn_model_z
 	if len(path_to_crowd_sourced_data) == 0:
 		print('Please provide path_to_crowd_sourced_data in indoor_localization_server.py')
 		return
@@ -28,7 +34,7 @@ def initialize_knn_model(path_to_crowd_sourced_data, num):
 		# crowd_sourced_data = genfromtxt(path_to_crowd_sourced_data, delimiter=',',
 		#                                 dtype="S23, f, f, f, f, f, f, f, f, f, f, f", autostrip=True)
 		try:
-			processed_data = preprocess_data_for_knn(path_to_crowd_sourced_data)
+			live_data, processed_data = preprocess_data_for_knn(path_to_crowd_sourced_data)
 			knn_model_x, knn_model_y, knn_model_z = build_knn_model(processed_data, num)
 		except Exception as e:
 			print('[initialize_knn_model] An error occured when preparing knn model')
@@ -148,23 +154,28 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
 	for entry in averages:
 		for i in range(0, 8):
 			averages[entry][i] = averages[entry][i] / 10  # 10 entries per submission
-	# Replace RSSI = 0 with average
+	# Replace RSSI = 0 with -95 since 0 means that the beacon was too far away to pick up a signal
 	for i in range(len(crowd_sourced_data)):
 		for j in range(len(crowd_sourced_data[0])):
 			if crowd_sourced_data[i][j] == '0':
-				if (averages[crowd_sourced_data[i][0]][j - 1] != 0):
-					crowd_sourced_data[i][j] = averages[crowd_sourced_data[i][0]][j - 1]
-				else:
-					# Find average for all distances for submission ID
-					for k in range(0, 8):
-						averageAllBeacons = averages[crowd_sourced_data[i][0]][k]
-					crowd_sourced_data[i][j] = averages[crowd_sourced_data[i][0]][k] / 10
+				if (averages[crowd_sourced_data[i][0]][j - 1] == 0):
+					crowd_sourced_data[i][j] = -95
+	live_data = []
+	for i in range(0,5):
+		idxToRemove = random.randint(0, len(crowd_sourced_data))
+		#print("Removing index: ", idxToRemove)
+		live_data.append(crowd_sourced_data[idxToRemove])
+		del crowd_sourced_data[idxToRemove]
+	#Format return arrays
 	for i in range(len(crowd_sourced_data)):
 		RSSIs = [float(crowd_sourced_data[i][k]) for k in range(1, 9)]
 		crowd_sourced_data[i] = [RSSIs, float(crowd_sourced_data[i][9]), float(crowd_sourced_data[i][10]),
 		                         float(crowd_sourced_data[i][11])]
-	# print(numpy.asarray(crowd_sourced_data))
-	return numpy.asarray(crowd_sourced_data)
+	for i in range(len(live_data)):
+		RSSIs = [float(live_data[i][k]) for k in range(1, 9)]
+		live_data[i] = [RSSIs, float(live_data[i][9]), float(live_data[i][10]),
+									float(live_data[i][11])]
+	return (numpy.asarray(live_data), numpy.asarray(crowd_sourced_data))
 
 
 def build_knn_model(processed_data, neighbors):
@@ -185,8 +196,6 @@ def build_knn_model(processed_data, neighbors):
         x_data.append(data[1])
         y_data.append(data[2])
         z_data.append(data[3])
-        
-    #print(x_data)    
 
     knn_x.fit(rssi_data, x_data)
     knn_y.fit(rssi_data, y_data)
@@ -196,7 +205,7 @@ def build_knn_model(processed_data, neighbors):
     return (knn_x, knn_y, knn_z)
 
 
-def perform_knn_with_live_data(proccessed_live_rssi_data):
+def perform_knn_with_live_data(live_data):
 	''' perform regression using the knn model you built:
         After you finish this method. The visualization should show
         the position calculated by fingerprinting using knn.
@@ -207,10 +216,19 @@ def perform_knn_with_live_data(proccessed_live_rssi_data):
     to see how to use the knn model to predict
     '''
 
+	global knn_model_x
+	global knn_model_y
+	global knn_model_z
+	proccessed_live_rssi_data = []
+	for data in live_data:
+		proccessed_live_rssi_data.append(data[0])
 	x = knn_model_x.predict(proccessed_live_rssi_data)
 	y = knn_model_y.predict(proccessed_live_rssi_data)
 	z = knn_model_z.predict(proccessed_live_rssi_data)
-
+	#print(proccessed_live_rssi_data)
+	#print(x)
+	#print(y)
+	#print(z)
 	return x, y, z
 
 
@@ -237,7 +255,7 @@ def rssi_to_dist(proccessed_live_rssi_data):
 	for rssi in proccessed_live_rssi_data:  # loop through if the processed data is 2d, i need to change if only 1d'
 		ratio = (rssi * 1.0) / txPower
 		if (rssi == 0):
-			dist_to_beacons.append(0);
+			dist_to_beacons.append(0)
 		elif ((ratio) < 1.0):
 			dist_to_beacons.append(ratio ** 10)
 		else:
@@ -271,8 +289,7 @@ def perform_trilateration_with_live_data(distances):
 	def objective_function(xyz_guess, xyzd):
 		sum = 0
 		for i in range(len(xyzd[0])):
-			sum_of_squares = pow(xyz_guess[0] - xyzd[0][i], 2) + pow(xyz_guess[1] - xyzd[1][i], 2) + pow(
-				xyz_guess[2] - xyzd[2][i], 2)
+			sum_of_squares = pow(xyz_guess[0] - xyzd[0][i], 2) + pow(xyz_guess[1] - xyzd[1][i], 2) + pow(xyz_guess[2] - xyzd[2][i], 2)
 			sum += pow(pow(sum_of_squares, .5) - xyzd[3][i], 2)
 		# Multiply by w_i, whatever that is - lower weight for rssi of -90 bc can't trust it 
 		return sum
@@ -289,5 +306,7 @@ def perform_trilateration_with_live_data(distances):
 	return (x, y, z)
 
 if __name__ == '__main__':
-    initialize_knn_model('Data/crowd_sourced_data.csv', 5)
+	initialize_knn_model('Data/crowd_sourced_data.csv', 5)
+	perform_knn_with_live_data(live_data)
+	#print(rssi_to_dist(live_data))
 
