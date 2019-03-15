@@ -173,7 +173,7 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
 		                         float(crowd_sourced_data[i][11])]
 	for i in range(len(live_data)):
 		RSSIs = [float(live_data[i][k]) for k in range(1, 9)]
-		print(live_data[i][9],live_data[i][10],live_data[i][11])
+		#print(live_data[i][9],live_data[i][10],live_data[i][11])
 		live_data[i] = [RSSIs, float(live_data[i][9]), float(live_data[i][10]), float(live_data[i][11])]
 	return (numpy.asarray(live_data), numpy.asarray(crowd_sourced_data))
 
@@ -315,8 +315,8 @@ def perform_trilateration_with_live_data(distances):
 
 if __name__ == '__main__':
 	initialize_knn_model('Data/crowd_sourced_data.csv', 5)
-	perform_knn_with_live_data(live_data)
-	distances = rssi_to_dist(live_data)
-	coordinates = perform_trilateration_with_live_data(distances)
-	for coordinate in coordinates:
-		print(coordinate)
+	#perform_knn_with_live_data(live_data)
+	#distances = rssi_to_dist(live_data)
+	#coordinates = perform_trilateration_with_live_data(distances)
+	#for coordinate in coordinates:
+		#print(coordinate)
