@@ -173,8 +173,8 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
 		                         float(crowd_sourced_data[i][11])]
 	for i in range(len(live_data)):
 		RSSIs = [float(live_data[i][k]) for k in range(1, 9)]
-		live_data[i] = [RSSIs, float(live_data[i][9]), float(live_data[i][10]),
-									float(live_data[i][11])]
+		print(live_data[i][9],live_data[i][10],live_data[i][11])
+		live_data[i] = [RSSIs, float(live_data[i][9]), float(live_data[i][10]), float(live_data[i][11])]
 	return (numpy.asarray(live_data), numpy.asarray(crowd_sourced_data))
 
 
@@ -250,19 +250,24 @@ def rssi_to_dist(proccessed_live_rssi_data):
 	# TODO: implement the algorithm from the link above
 	txPower = -54  # According to the spec of the beacon
 
+	distances = []
 	dist_to_beacons = [None]
+	#print(len(proccessed_live_rssi_data))
 
 	for rssi in proccessed_live_rssi_data:  # loop through if the processed data is 2d, i need to change if only 1d'
-		ratio = (rssi * 1.0) / txPower
-		if (rssi == 0):
-			dist_to_beacons.append(0)
-		elif ((ratio) < 1.0):
-			dist_to_beacons.append(ratio ** 10)
-		else:
-			distance = (0.89976) * (ratio ** 7.7095) + 0.111
-			dist_to_beacons.append(distance)
-
-	return dist_to_beacons
+		dist_to_beacons = []
+		for beacon in rssi[0]:
+			#print(beacon)
+			ratio = (beacon * 1.0) / txPower
+			if (beacon == 0):
+				dist_to_beacons.append(0)
+			elif ((ratio) < 1.0):
+				dist_to_beacons.append(ratio ** 10)
+			else:
+				distance = (0.89976) * (ratio ** 7.7095) + 0.111
+				dist_to_beacons.append(distance)
+		distances.append(dist_to_beacons)
+	return distances
 
 
 def perform_trilateration_with_live_data(distances):
@@ -276,37 +281,42 @@ def perform_trilateration_with_live_data(distances):
     Returns:
         x, y, z location of yourself
     '''
-	# x_i, y_i, z_i are the x, y, z coordinates of the beacons
-	x_i = [13.369, 13.21, 10.066, 3.012, 3.884, 5.152, 6.024, 8.904]
-	y_i = [13.396, 5.18, 3.911, 3.066, 10.067, 13.211, 8.958, 6.025]
-	z_i = [4.824, 4.12, 3.723, 2.466, 3.723, 4.12, 1.871, 1.871]
-	d_i = distances
-	initial_guess = [8.719, 9.037, 1.534]
+	coordinates = []
+	for distance in distances:
+		# x_i, y_i, z_i are the x, y, z coordinates of the beacons
+		x_i = [13.369, 13.21, 10.066, 3.012, 3.884, 5.152, 6.024, 8.904]
+		y_i = [13.396, 5.18, 3.911, 3.066, 10.067, 13.211, 8.958, 6.025]
+		z_i = [4.824, 4.12, 3.723, 2.466, 3.723, 4.12, 1.871, 1.871]
+		d_i = distance
+		initial_guess = [8.719, 9.037, 1.534]
 
-	# TODO: fill in the objective_function for optimization. Use SSE,
-	# sum of squared error as the score you want to minimize
+		# TODO: fill in the objective_function for optimization. Use SSE,
+		# sum of squared error as the score you want to minimize
 
-	def objective_function(xyz_guess, xyzd):
-		sum = 0
-		for i in range(len(xyzd[0])):
-			sum_of_squares = pow(xyz_guess[0] - xyzd[0][i], 2) + pow(xyz_guess[1] - xyzd[1][i], 2) + pow(xyz_guess[2] - xyzd[2][i], 2)
-			sum += pow(pow(sum_of_squares, .5) - xyzd[3][i], 2)
-		# Multiply by w_i, whatever that is - lower weight for rssi of -90 bc can't trust it 
-		return sum
+		def objective_function(xyz_guess, xyzd):
+			sum = 0
+			for i in range(len(xyzd[0])):
+				sum_of_squares = pow(xyz_guess[0] - xyzd[0][i], 2) + pow(xyz_guess[1] - xyzd[1][i], 2) + pow(xyz_guess[2] - xyzd[2][i], 2)
+				sum += pow(pow(sum_of_squares, .5) - xyzd[3][i], 2)
+			# Multiply by w_i, whatever that is - lower weight for rssi of -90 bc can't trust it 
+			return sum
 
-	(x,y,z) = (None, None, None)
-	try:
-		x, y, z = minimize(objective_function, initial_guess, [x_i, y_i, z_i, d_i]).x
-	except NotImplementedError:
-		print('[perform_trilateration_with_live_data] objective function for minimization not implemented')
-	except Exception as e:
-		print('[perform_trilateration_with_live_data] An error occured when minimize')
-		print(e.__doc__)
-		print(traceback.print_exc())
-	return (x, y, z)
+		(x,y,z) = (None, None, None)
+		try:
+			x, y, z = minimize(objective_function, initial_guess, [x_i, y_i, z_i, d_i]).x
+		except NotImplementedError:
+			print('[perform_trilateration_with_live_data] objective function for minimization not implemented')
+		except Exception as e:
+			print('[perform_trilateration_with_live_data] An error occured when minimize')
+			print(e.__doc__)
+			print(traceback.print_exc())
+		coordinates.append((x,y,z))
+	return coordinates
 
 if __name__ == '__main__':
 	initialize_knn_model('Data/crowd_sourced_data.csv', 5)
 	perform_knn_with_live_data(live_data)
-	#print(rssi_to_dist(live_data))
-
+	distances = rssi_to_dist(live_data)
+	coordinates = perform_trilateration_with_live_data(distances)
+	for coordinate in coordinates:
+		print(coordinate)
