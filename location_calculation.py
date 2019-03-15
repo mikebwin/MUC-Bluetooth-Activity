@@ -17,7 +17,7 @@ global knn_model_z
 global live_data
 
 
-def initialize_knn_model(path_to_crowd_sourced_data, num):
+def initialize_knn_model(path_to_crowd_sourced_data, num, distance_metric="minkowski"):
 	''' load the crowd sourced data file and train the knn regressor
 
     Arguments:
@@ -35,7 +35,7 @@ def initialize_knn_model(path_to_crowd_sourced_data, num):
 		#                                 dtype="S23, f, f, f, f, f, f, f, f, f, f, f", autostrip=True)
 		try:
 			live_data, processed_data = preprocess_data_for_knn(path_to_crowd_sourced_data)
-			knn_model_x, knn_model_y, knn_model_z = build_knn_model(processed_data, num)
+			knn_model_x, knn_model_y, knn_model_z = build_knn_model(processed_data, num, distance_metric)
 		except Exception as e:
 			print('[initialize_knn_model] An error occured when preparing knn model')
 			print(e.__doc__)
@@ -178,11 +178,11 @@ def preprocess_data_for_knn(path_to_crowd_sourced_data):
 	return (numpy.asarray(live_data), numpy.asarray(crowd_sourced_data))
 
 
-def build_knn_model(processed_data, neighbors):
+def build_knn_model(processed_data, neighbors, dist_metric):
 	# TODO: Refer to the scikit-learn documentation to see how to use KNeighborsRegressor
-    knn_x = KNeighborsRegressor(n_neighbors=neighbors)
-    knn_y = KNeighborsRegressor(n_neighbors=neighbors)
-    knn_z = KNeighborsRegressor(n_neighbors=neighbors)
+    knn_x = KNeighborsRegressor(n_neighbors=neighbors, metric=dist_metric)
+    knn_y = KNeighborsRegressor(n_neighbors=neighbors, metric=dist_metric)
+    knn_z = KNeighborsRegressor(n_neighbors=neighbors, metric=dist_metric)
 
     # TODO: How do you extract the information you need from processed data
     
@@ -306,7 +306,18 @@ def perform_trilateration_with_live_data(distances):
 	return (x, y, z)
 
 if __name__ == '__main__':
-	initialize_knn_model('Data/crowd_sourced_data.csv', 5)
-	perform_knn_with_live_data(live_data)
+	metrics = ["minkowski", "euclidean", "manhattan", "chebyshev"]
+
+	for i in metrics:
+		print i
+		initialize_knn_model('Data/crowd_sourced_data.csv', 5, i)
+		for item in perform_knn_with_live_data(live_data):
+			print item
+
+	for i in range(1, 10):
+		print i
+		initialize_knn_model('Data/crowd_sourced_data.csv', i)
+		for item in perform_knn_with_live_data(live_data):
+			print item
 	#print(rssi_to_dist(live_data))
 
