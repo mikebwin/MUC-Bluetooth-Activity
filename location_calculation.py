@@ -314,19 +314,23 @@ def perform_trilateration_with_live_data(distances):
 	return coordinates
 
 if __name__ == '__main__':
-
 	metrics = ["minkowski", "euclidean", "manhattan", "chebyshev"]
 
-	for i in metrics:
-		print i
-		initialize_knn_model('Data/crowd_sourced_data.csv', 5, i)
-		for item in perform_knn_with_live_data(live_data):
-			print item
+	# for i in metrics:
+	# 	print i
+	# 	initialize_knn_model('Data/crowd_sourced_data.csv', 5, i)
+	# 	for item in perform_knn_with_live_data(live_data):
+	# 		print item
+	#
+	# for i in range(1, 10):
+	# 	print i
+	# 	initialize_knn_model('Data/crowd_sourced_data.csv', i)
+	# 	for item in perform_knn_with_live_data(live_data):
+	# 		print item
 
-	for i in range(1, 10):
-		print i
-		initialize_knn_model('Data/crowd_sourced_data.csv', i)
-		for item in perform_knn_with_live_data(live_data):
-			print item
-	#print(rssi_to_dist(live_data))
-
+	initialize_knn_model('Data/crowd_sourced_data.csv', 5)
+	perform_knn_with_live_data(live_data)
+	distances = rssi_to_dist(live_data)
+	coordinates = perform_trilateration_with_live_data(distances)
+	for coordinate in coordinates:
+		print(coordinate)
